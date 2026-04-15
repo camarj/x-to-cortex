@@ -128,6 +128,23 @@ ${urlsBlock}
 }
 
 /**
+ * Chequea si un tweet ya fue almacenado (busca por id en posts/ y threads/).
+ */
+export async function alreadyStored(id) {
+  const root = bookmarksRoot();
+  const dirs = [path.join(root, "posts"), path.join(root, "threads")];
+  for (const dir of dirs) {
+    try {
+      const files = await fs.readdir(dir);
+      if (files.some((f) => f.includes(`-${id}-`) || f.includes(`-${id}.md`))) return true;
+    } catch {
+      // dir no existe aún — OK
+    }
+  }
+  return false;
+}
+
+/**
  * Loggea un tweet rechazado en JSONL para revisión.
  */
 export async function logRejected(entry) {

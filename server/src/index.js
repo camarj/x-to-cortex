@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
 import { classifyAndTranslate } from "./classify.js";
-import { writePost, writeThread, logRejected } from "./writer.js";
+import { writePost, writeThread, logRejected, alreadyStored } from "./writer.js";
 
 const app = express();
 app.use(cors({ origin: ["https://x.com", "https://twitter.com", "chrome-extension://*"] }));
@@ -29,6 +29,9 @@ app.post("/ingest", async (req, res) => {
         await logRejected({ kind, tweet, reason: "empty-text", at: new Date().toISOString() });
         return res.json({ ok: true, stored: false, reason: "empty-text" });
       }
+      if (await alreadyStored(tweet.id)) {
+        return res.json({ ok: true, stored: false, reason: "already-stored" });
+      }
       const classification = await classifyAndTranslate(tweet.text);
 
       if (!config.validCategories.includes(classification.category)) {
@@ -46,6 +49,9 @@ app.post("/ingest", async (req, res) => {
       if (!joined) {
         await logRejected({ kind, thread, reason: "empty-text", at: new Date().toISOString() });
         return res.json({ ok: true, stored: false, reason: "empty-text" });
+      }
+      if (await alreadyStored(thread.rootId)) {
+        return res.json({ ok: true, stored: false, reason: "already-stored" });
       }
       const classification = await classifyAndTranslate(joined);
 
