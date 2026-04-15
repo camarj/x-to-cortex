@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>X to Cortex</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>X to Cortex</h1>
+    <span id="server-status" class="status unknown">·</span>
+  </header>
+
+  <main>
+    <button id="sync-all" class="primary">Sync all bookmarks</button>
+    <div id="progress" class="hidden">
+      <div class="bar"><div id="bar-fill"></div></div>
+      <p id="progress-text">0 / 0</p>
+    </div>
+    <div id="log" class="log"></div>
+  </main>
+
+  <footer>
+    <a href="http://localhost:7777/health" target="_blank">Server</a>
+    <a href="https://github.com/camarj/x-to-cortex" target="_blank">GitHub</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
