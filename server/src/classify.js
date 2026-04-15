@@ -23,20 +23,30 @@ NO envuelvas la respuesta en bloques \`\`\`json ni comentarios. Solo el JSON cru
 
 /**
  * Clasifica y traduce un tweet o hilo.
- * @param {string} text - texto original (un tweet o un hilo concatenado)
- * @returns {Promise<{category: string, translated: string | null}>}
+ * Robusto ante respuestas mal formadas: si no se puede parsear, devuelve "other".
  */
 export async function classifyAndTranslate(text) {
-  // TODO: manejar rate limits con retry exponencial
   const res = await client.messages.create({
     model: config.claudeModel,
     max_tokens: 2048,
     system: SYSTEM,
-    messages: [{ role: "user", content: text }]
+    messages: [
+      { role: "user", content: text },
+      // Prefill: fuerza a Claude a continuar desde "{" → respuesta empieza como JSON
+      { role: "assistant", content: "{" },
+    ],
   });
 
   const raw = res.content[0]?.type === "text" ? res.content[0].text : "";
-  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  // Re-componer el JSON prefillado
+  const reconstructed = "{" + raw;
+  // Sanitizar por si acaso llegan code fences
+  const cleaned = reconstructed
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+
   try {
     const parsed = JSON.parse(cleaned);
     if (!["ai", "software-dev", "product", "finance", "other"].includes(parsed.category)) {
@@ -44,7 +54,8 @@ export async function classifyAndTranslate(text) {
     }
     return parsed;
   } catch (err) {
-    console.error("[classify] failed to parse. raw:", raw, "cleaned:", cleaned);
-    throw err;
+    // Fallback: en lugar de crashear, logear y tratar como "other"
+    console.warn("[classify] fallback to 'other'. raw:", raw.slice(0, 200));
+    return { category: "other", translated: null };
   }
 }
