@@ -231,7 +231,8 @@ async function bulkSync(onProgress) {
   while (stableScrolls < 3) {
     document.querySelectorAll(SELECTORS.tweet).forEach((el) => {
       const t = extractTweet(el);
-      if (t && !collected.has(t.id)) collected.set(t.id, t);
+      // Saltar tweets sin texto (solo media) — ahorra round-trip + token waste
+      if (t && t.text && !collected.has(t.id)) collected.set(t.id, t);
     });
 
     if (onProgress) onProgress({ phase: "scroll", collected: collected.size });

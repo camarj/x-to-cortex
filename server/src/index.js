@@ -25,6 +25,10 @@ app.post("/ingest", async (req, res) => {
 
     if (kind === "post") {
       const { tweet } = req.body;
+      if (!tweet?.text?.trim()) {
+        await logRejected({ kind, tweet, reason: "empty-text", at: new Date().toISOString() });
+        return res.json({ ok: true, stored: false, reason: "empty-text" });
+      }
       const classification = await classifyAndTranslate(tweet.text);
 
       if (!config.validCategories.includes(classification.category)) {
@@ -38,7 +42,11 @@ app.post("/ingest", async (req, res) => {
 
     if (kind === "thread") {
       const { thread } = req.body;
-      const joined = thread.tweets.map((t, i) => `${i + 1}/ ${t.text}`).join("\n\n");
+      const joined = thread.tweets.map((t, i) => `${i + 1}/ ${t.text}`).join("\n\n").trim();
+      if (!joined) {
+        await logRejected({ kind, thread, reason: "empty-text", at: new Date().toISOString() });
+        return res.json({ ok: true, stored: false, reason: "empty-text" });
+      }
       const classification = await classifyAndTranslate(joined);
 
       if (!config.validCategories.includes(classification.category)) {
