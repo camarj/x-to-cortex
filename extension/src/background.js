@@ -1,9 +1,7 @@
 // Service worker — background script
-// Mantiene estado de sync y escucha eventos del popup
+// En este MVP toda la lógica vive en content script + popup.
+// El worker solo registra el evento de instalación para debug.
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("[x-to-cortex] installed");
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log("[x-to-cortex] installed", details.reason);
 });
-
-// TODO: relay de mensajes entre popup y content script
-// TODO: health check al server local cada N minutos (storage.session)
