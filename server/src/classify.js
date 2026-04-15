@@ -16,8 +16,10 @@ Definiciones:
 - finance: finanzas personales/corporativas, inversión, economía, mercados, valuations
 - other: cualquier otra cosa (política, memes, lifestyle, deportes, personal)
 
-Responde SOLO JSON válido con este schema:
-{"category": "ai|software-dev|product|finance|other", "translated": "texto en español o null"}`;
+Responde SOLO JSON válido con este schema, sin markdown ni code fences:
+{"category": "ai|software-dev|product|finance|other", "translated": "texto en español o null"}
+
+NO envuelvas la respuesta en bloques \`\`\`json ni comentarios. Solo el JSON crudo.`;
 
 /**
  * Clasifica y traduce un tweet o hilo.
@@ -34,14 +36,15 @@ export async function classifyAndTranslate(text) {
   });
 
   const raw = res.content[0]?.type === "text" ? res.content[0].text : "";
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(cleaned);
     if (!["ai", "software-dev", "product", "finance", "other"].includes(parsed.category)) {
       throw new Error(`invalid category: ${parsed.category}`);
     }
     return parsed;
   } catch (err) {
-    console.error("[classify] failed to parse:", raw);
+    console.error("[classify] failed to parse. raw:", raw, "cleaned:", cleaned);
     throw err;
   }
 }
