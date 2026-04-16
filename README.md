@@ -76,8 +76,13 @@ Sirve en `http://localhost:7777`.
 
 ## Uso
 
-- **Botón por tweet** — hover en cualquier tweet bookmarkeado → click "Save to Cortex"
-- **Sync masivo** — click ícono de la extension → "Sync all bookmarks" (lento, respeta rate limits de X)
+Click en el botón **→ Cortex** que aparece en cada tweet (al lado de share).
+
+- **Tweet individual:** click desde cualquier vista
+- **Hilo completo:** primero entra al permalink del tweet (click en su fecha), luego dale al botón. Captura todos los tweets del autor en el hilo.
+- **Posts largos con "Show more":** entra al permalink primero (X carga el texto completo en esa vista) y luego dale al botón.
+
+> Nota: el sync masivo desde `/i/bookmarks` se descartó porque X no muestra hilos completos en esa vista (solo el tweet bookmarkeado). El botón individual es el flujo principal.
 
 ## Categorías filtradas
 
