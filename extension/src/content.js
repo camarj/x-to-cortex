@@ -242,14 +242,14 @@ async function bulkSync(onProgress) {
 
   while (scrollsWithoutNew < MAX_SCROLLS_WITHOUT_NEW) {
     // Capturar todos los tweets actualmente en el DOM
-    document.querySelectorAll(SELECTORS.tweet).forEach((el) => {
+    const tweets = document.querySelectorAll(SELECTORS.tweet);
+    tweets.forEach((el) => {
       const t = extractTweet(el);
       if (t && t.text && !collected.has(t.id)) collected.set(t.id, t);
     });
 
     if (onProgress) onProgress({ phase: "scroll", collected: collected.size });
 
-    // Si no hubo nuevos en este ciclo, incrementar contador
     if (collected.size === lastCollectedSize) {
       scrollsWithoutNew++;
     } else {
@@ -257,9 +257,17 @@ async function bulkSync(onProgress) {
       lastCollectedSize = collected.size;
     }
 
-    // Scroll suave de 1 viewport (no 2) para no saltar tweets
-    window.scrollBy({ top: window.innerHeight, behavior: "instant" });
-    await new Promise((r) => setTimeout(r, 3000)); // 3s para que X cargue
+    // Scroll trigger: usar scrollIntoView del último tweet en DOM.
+    // Esto sí dispara el lazy-load de X de forma confiable.
+    const lastTweet = tweets[tweets.length - 1];
+    if (lastTweet) {
+      lastTweet.scrollIntoView({ behavior: "auto", block: "end" });
+    } else {
+      // Si no hay tweets aún, scroll a fondo
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    }
+
+    await new Promise((r) => setTimeout(r, 2500)); // 2.5s para que X cargue siguientes
   }
 
   // Enviar cada uno al server (secuencial, rate-limit friendly)
