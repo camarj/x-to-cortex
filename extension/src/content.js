@@ -231,29 +231,35 @@ async function bulkSync(onProgress) {
     return { ok: false, error: "Navega a x.com/i/bookmarks primero" };
   }
 
-  const collected = new Map(); // id → tweet
-  let lastHeight = 0;
-  let stableScrolls = 0;
+  // Empezar desde arriba para no perder los más recientes
+  window.scrollTo(0, 0);
+  await new Promise((r) => setTimeout(r, 1000));
 
-  // Scroll infinito con detección de fondo
-  while (stableScrolls < 3) {
+  const collected = new Map(); // id → tweet
+  let lastCollectedSize = 0;
+  let scrollsWithoutNew = 0;
+  const MAX_SCROLLS_WITHOUT_NEW = 8; // tolera ~24s de "no aparecen nuevos" antes de parar
+
+  while (scrollsWithoutNew < MAX_SCROLLS_WITHOUT_NEW) {
+    // Capturar todos los tweets actualmente en el DOM
     document.querySelectorAll(SELECTORS.tweet).forEach((el) => {
       const t = extractTweet(el);
-      // Saltar tweets sin texto (solo media) — ahorra round-trip + token waste
       if (t && t.text && !collected.has(t.id)) collected.set(t.id, t);
     });
 
     if (onProgress) onProgress({ phase: "scroll", collected: collected.size });
 
-    window.scrollBy(0, window.innerHeight * 2);
-    await new Promise((r) => setTimeout(r, 1500));
-
-    const h = document.documentElement.scrollHeight;
-    if (h === lastHeight) stableScrolls++;
-    else {
-      stableScrolls = 0;
-      lastHeight = h;
+    // Si no hubo nuevos en este ciclo, incrementar contador
+    if (collected.size === lastCollectedSize) {
+      scrollsWithoutNew++;
+    } else {
+      scrollsWithoutNew = 0;
+      lastCollectedSize = collected.size;
     }
+
+    // Scroll suave de 1 viewport (no 2) para no saltar tweets
+    window.scrollBy({ top: window.innerHeight, behavior: "instant" });
+    await new Promise((r) => setTimeout(r, 3000)); // 3s para que X cargue
   }
 
   // Enviar cada uno al server (secuencial, rate-limit friendly)
