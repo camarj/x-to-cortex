@@ -35,25 +35,37 @@ export async function writePost(tweet, classification) {
   const title = (classification.translated || tweet.text).slice(0, 60);
   const filename = `${date}-${tweet.id}-${slug(title, 40)}.md`;
 
+  const sourceUrl = `https://x.com/${tweet.author.replace(/^@/, "")}/status/${tweet.id}`;
+
   const frontmatter = {
     title,
     type: "article",
-    source: `https://x.com/${tweet.author.replace(/^@/, "")}/status/${tweet.id}`,
+    source: sourceUrl,
     author: tweet.author,
     date_ingested: date,
     date_bookmarked: tweet.dateBookmarked || date,
     category: classification.category,
     status: "pending",
+    is_thread_context: !!tweet.isThreadContext,
+    is_truncated: !!tweet.isTruncated,
     tags: []
   };
 
   const urls = (tweet.urls || []).map((u) => `- ${u}`).join("\n");
 
+  // Aviso visible cuando el contenido puede estar incompleto
+  const warnings = [];
+  if (tweet.isThreadContext) warnings.push("⚠️ Este tweet es parte de un hilo — solo se guardó este post, ver hilo completo en el link.");
+  if (tweet.isTruncated) warnings.push("⚠️ Tweet truncado por X (\"Show more\") — abrir el link para leer completo.");
+  const warningsBlock = warnings.length ? warnings.join("\n") + "\n\n" : "";
+
   const body = `---
 ${yaml.dump(frontmatter).trim()}
 ---
 
-## Traducción
+🔗 **Ver en X:** ${sourceUrl}
+
+${warningsBlock}## Traducción
 
 ${classification.translated || "(sin traducción)"}
 
@@ -85,10 +97,12 @@ export async function writeThread(thread, classification) {
   const title = (classification.translated || firstText).slice(0, 60);
   const filename = `${date}-${thread.rootId}-${slug(title, 40)}.md`;
 
+  const sourceUrl = `https://x.com/${thread.author.replace(/^@/, "")}/status/${thread.rootId}`;
+
   const frontmatter = {
     title,
     type: "article",
-    source: `https://x.com/${thread.author.replace(/^@/, "")}/status/${thread.rootId}`,
+    source: sourceUrl,
     author: thread.author,
     date_ingested: date,
     date_bookmarked: thread.dateBookmarked || date,
@@ -108,6 +122,8 @@ export async function writeThread(thread, classification) {
   const body = `---
 ${yaml.dump(frontmatter).trim()}
 ---
+
+🔗 **Ver en X:** ${sourceUrl} · ${thread.tweets.length} tweets
 
 ## Traducción
 

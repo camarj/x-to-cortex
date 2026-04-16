@@ -53,7 +53,15 @@ function extractTweet(articleEl) {
     timeEl?.getAttribute("datetime")?.slice(0, 10) ||
     new Date().toISOString().slice(0, 10);
 
-  return { id, author, text, urls, dateBookmarked };
+  // Flags de contenido parcial — para que el .md avise al usuario
+  const articleText = articleEl.innerText || "";
+  const isThreadContext =
+    /show this thread|mostrar este hilo|ver este hilo/i.test(articleText);
+  const isTruncated =
+    /show more|mostrar más|ver más/i.test(articleText) &&
+    !!articleEl.querySelector('[data-testid="tweet-text-show-more-link"]');
+
+  return { id, author, text, urls, dateBookmarked, isThreadContext, isTruncated };
 }
 
 function isStatusPage() {
