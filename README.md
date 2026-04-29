@@ -1,25 +1,33 @@
 # x-to-cortex
 
-Chrome extension + local server que captura bookmarks de X (Twitter), los clasifica con Claude Haiku, traduce al español y los archiva en un knowledge base local ([Cortex](https://github.com/camarj/cortex)) en formato Markdown.
+> Chrome extension + local server que captura bookmarks de X (Twitter), los clasifica con Claude Haiku y los archiva como Markdown en tu knowledge base local.
 
-## Por qué
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
 
-X es una fuente densa de señal sobre IA, desarrollo de software, producto y finanzas. Los bookmarks de X son un cementerio — se guardan y nunca se vuelven a leer. Este proyecto los convierte en notas procesables en una bóveda de Obsidian.
+## ¿Por qué?
+
+X es una fuente densa de señal sobre IA, desarrollo, producto y finanzas. Los bookmarks de X son un cementerio — se guardan y nunca se vuelven a leer. Este proyecto los convierte en notas procesables en tu bóveda de Obsidian (o cualquier sistema basado en Markdown).
+
+## Demo
+
+```
+Click en "→ Cortex" en cualquier tweet
+        ↓
+Claude Haiku clasifica + traduce
+        ↓
+Archivo .md en tu wiki local
+```
 
 ## Arquitectura
 
 ```
-Chrome Extension
-├── content script (x.com)
-│   ├── detecta tipo (post | thread)
-│   ├── extrae tweets del autor
-│   └── POST → http://localhost:7777/ingest
-│
-Local Node Server (puerto 7777)
-├── clasifica + traduce (Claude Haiku 4.5)
-├── filtra categorías: ai, software-dev, product, finance
-├── match   → escribe .md en raw/x-bookmarks/{posts|threads}/
-└── no match → log en raw/x-bookmarks/_rejected.jsonl
+Chrome Extension                    Local Server (Node + Express)
+├─ content script (x.com)           ├─ POST /ingest
+│  ├─ detecta tipo (post | thread)  ├─ clasifica + traduce (Claude Haiku)
+│  ├─ extrae tweets del autor       ├─ filtra por categoría
+│  └─ POST localhost:7777/ingest    └─ escribe .md en raw/x-bookmarks/
+└─ popup UI                                                       └─ _rejected.jsonl
 ```
 
 ## Stack
@@ -31,29 +39,7 @@ Local Node Server (puerto 7777)
 | LLM | Claude Haiku 4.5 (`@anthropic-ai/sdk`) |
 | Storage | Markdown en filesystem local |
 
-## Estructura del repo
-
-```
-x-to-cortex/
-├── extension/        # Chrome extension (Manifest V3)
-│   ├── manifest.json
-│   ├── src/
-│   │   ├── content.js       # runs en x.com, extrae tweets
-│   │   ├── background.js    # service worker
-│   │   └── popup/           # UI del toolbar button
-│   └── icons/
-├── server/           # Express local en :7777
-│   ├── src/
-│   │   ├── index.js    # routing + http
-│   │   ├── classify.js # Claude Haiku para clasificar + traducir
-│   │   ├── writer.js   # escribe .md en Cortex/raw/
-│   │   └── config.js   # paths, env vars
-│   └── package.json
-└── docs/
-    └── architecture.md
-```
-
-## Setup rápido
+## Instalación
 
 ### 1. Server
 
@@ -61,7 +47,7 @@ x-to-cortex/
 cd server
 npm install
 cp .env.example .env
-# editar .env con tu ANTHROPIC_API_KEY
+# Editar .env con tu ANTHROPIC_API_KEY
 npm start
 ```
 
@@ -69,35 +55,51 @@ Sirve en `http://localhost:7777`.
 
 ### 2. Extension
 
-1. Abrir `chrome://extensions`
-2. Activar "Developer mode"
-3. "Load unpacked" → seleccionar `extension/`
-4. El ícono aparece en la toolbar
+1. Abre `chrome:///extensions`
+2. Activa "Developer mode"
+3. "Load unpacked" → selecciona la carpeta `extension/`
 
 ## Uso
 
-Click en el botón **→ Cortex** que aparece en cada tweet (al lado de share).
+Haz click en el botón **→ Cortex** que aparece junto a cada tweet.
 
-- **Tweet individual:** click desde cualquier vista
-- **Hilo completo:** primero entra al permalink del tweet (click en su fecha), luego dale al botón. Captura todos los tweets del autor en el hilo.
-- **Posts largos con "Show more":** entra al permalink primero (X carga el texto completo en esa vista) y luego dale al botón.
+| Escenario | Acción |
+|---|---|
+| Tweet individual | Click directo desde cualquier vista |
+| Hilo completo | Entra al permalink (click en la fecha), luego click en el botón |
+| Post largo con "Show more" | Entra al permalink primero — X carga el texto completo ahí |
 
-> Nota: el sync masivo desde `/i/bookmarks` se descartó porque X no muestra hilos completos en esa vista (solo el tweet bookmarkeado). El botón individual es el flujo principal.
+> Nota: el sync masivo desde `/i/bookmarks` se descartó porque X no muestra hilos completos en esa vista.
 
-## Categorías filtradas
+## Categorías
 
-Solo se guardan tweets clasificados en:
+Solo se guardan tweets clasificados como:
+
 - `ai` — inteligencia artificial, LLMs, ML
 - `software-dev` — desarrollo de software, programación, DevOps
 - `product` — product management, UX, design thinking
 - `finance` — finanzas, inversión, economía
 
-Todo lo demás se loguea en `_rejected.jsonl` con su clasificación, por si cambias de opinión.
+Todo lo demás se loguea en `_rejected.jsonl` para auditoría.
 
-## Estado
+## Estructura de salida
 
-**WIP** — scaffolding inicial. Ver `docs/architecture.md` para detalles.
+```
+raw/x-bookmarks/
+├── posts/
+│   └── 2025-01-15-slug-del-tweet.md
+├── threads/
+│   └── 2025-01-15-slug-del-hilo.md
+└── _rejected.jsonl
+```
+
+## Roadmap
+
+- [ ] Soporte para threads de más de 2 niveles de profundidad
+- [ ] Filtro configurable de categorías vía UI
+- [ ] Integración directa con Notion como destino alternativo
+- [ ] Export batch desde `/i/bookmarks` (si X expone API estable)
 
 ## License
 
-MIT
+MIT © [Raúl Camacho](https://github.com/camarj)
